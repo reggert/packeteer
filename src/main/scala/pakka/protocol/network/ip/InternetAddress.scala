@@ -32,7 +32,7 @@ final case class InternetAddressVersion4(val octet1 : Byte, val octet2 : Byte, v
 
 
 
-final case class InetAddressVersion6(
+final case class InternetAddressVersion6(
 		val octet1 : Byte,
 		val octet2 : Byte,
 		val octet3 : Byte,
@@ -74,4 +74,78 @@ final case class InetAddressVersion6(
 	
 	override def toString =
 		f"${octet1}%02X${octet2}%02X:${octet3}%02X${octet4}%02X:${octet5}%02X${octet6}%02X:${octet7}%02X${octet8}%02X:${octet9}%02X${octet10}%02X:${octet11}%02X${octet12}%02X:${octet13}%02X${octet14}%02X:${octet15}%02X${octet16}%02X"
+}
+
+
+object InternetAddress {
+	
+	object OctetSequence
+	{
+		def apply(address : InternetAddress) : Seq[Byte] = address
+		
+		def unapply(octets : Seq[Byte]) : Option[InternetAddress] = octets match
+		{
+			case InternetAddressVersion4.OctetSequence(address) => Some(address)
+			case InternetAddressVersion6.OctetSequence(address) => Some(address)
+			case _ => None
+		}
+	}
+}
+
+
+object InternetAddressVersion4 
+{
+	
+	object DottedDecimal 
+	{
+		val Pattern = """(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])""".r
+		
+		def apply(address : InternetAddressVersion4) = address.toString
+		
+		def unapply(s : String) : Option[InternetAddressVersion4] = s match
+		{
+			case Pattern(octet1, octet2, octet3, octet4) => 
+				Some(InternetAddressVersion4(octet1.toInt.toByte, octet2.toInt.toByte, octet3.toInt.toByte, octet4.toInt.toByte))
+			case _ =>
+				None
+		}
+	}
+	
+	object OctetSequence
+	{
+		def apply(address : InternetAddressVersion4) : Seq[Byte] = address
+	
+		def unapply(octets : Seq[Byte]) : Option[InternetAddressVersion4] = octets match
+		{
+			case Seq(octet1, octet2, octet3, octet4) => Some(InternetAddressVersion4(octet1, octet2, octet3, octet4))
+			case _ => None
+		}
+	}
+}
+
+
+object InternetAddressVersion6 
+{
+	object ColonGroups
+	{
+		def apply(address : InternetAddressVersion6) = address.toString
+	}
+	
+	object OctetSequence
+	{
+		def apply(address : InternetAddressVersion6) : Seq[Byte] = address
+		
+		def unapply(octets : Seq[Byte]) : Option[InternetAddressVersion6] = octets match
+		{
+			case Seq(
+					octet1, octet2, octet3, octet4, octet5, octet6, octet7, octet8,
+					octet9, octet10, octet11, octet12, octet13, octet14, octet15, octet16
+				) => 
+				Some(InternetAddressVersion6(
+						octet1, octet2, octet3, octet4, octet5, octet6, octet7, octet8,
+						octet9, octet10, octet11, octet12, octet13, octet14, octet15, octet16
+					))
+			case _ => None
+		}
+	}
 }
