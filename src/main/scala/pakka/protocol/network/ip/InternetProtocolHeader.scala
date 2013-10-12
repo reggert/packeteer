@@ -8,16 +8,16 @@ trait InternetProtocolHeader[Address <: InternetAddress] extends NetworkProtocol
 	def version : ProtocolVersion
 	def source : Address
 	def destination : Address
-	def nextHeader : NextHeader
+	def nextProtocol : HeaderType
 	def trafficClass : TrafficClass
-	def packetLength : Int
+	def hopLimit : HopCount
 }
 
 
 final case class ProtocolVersion(toByte : Byte) extends AnyVal
 
 
-final case class NextHeader(toByte : Byte) extends AnyVal with Unsigned.ByteWrapper
+final case class HeaderType(toByte : Byte) extends AnyVal with Unsigned.ByteWrapper
 
 
 final case class TrafficClass(toByte : Byte) extends AnyVal with Unsigned.ByteWrapper
@@ -29,3 +29,5 @@ final case class TrafficClass(toByte : Byte) extends AnyVal with Unsigned.ByteWr
 	def congestionEncountered : Boolean = ecnCodePoint == 3
 }
 
+
+final case class HopCount(toByte : Byte) extends AnyVal with Unsigned.ByteWrapper
