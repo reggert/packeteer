@@ -2,6 +2,7 @@ package pakka.file.pcap
 
 import java.nio.ByteOrder
 import pakka.util.Unsigned
+import scala.collection.immutable
 import FileHeader._
 
 trait FileHeader 
@@ -50,4 +51,28 @@ object FileHeader
 		val Swapped = Supported map {_.swapped}
 	}
 	
+	
+	def apply(fileHeader : FileHeader) : FileHeader = new PlainFileHeader(fileHeader)
+	
+	def apply(bytes : immutable.IndexedSeq[Byte]) : FileHeader = new SeqBackedFileHeader(bytes)
+	
+	def apply(
+			byteOrder : ByteOrder, 
+			magicNumber : MagicNumber,
+			versionMajor : VersionNumber,
+			versionMinor : VersionNumber,
+			timeZone : TimeZoneOffset,
+			sigFigs : SignificantFigures,
+			snapshotLength : Int,
+			linkType : LinkType
+		) : FileHeader = PlainFileHeader(
+				byteOrder, 
+				magicNumber, 
+				versionMajor, 
+				versionMinor, 
+				timeZone, 
+				sigFigs,
+				snapshotLength, 
+				linkType
+			)
 }

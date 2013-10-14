@@ -47,7 +47,7 @@ final class SeqBackedFileHeader(val bytes : immutable.IndexedSeq[Byte]) extends 
 	override def versionMajor = VersionNumber(extractShort(bytes.slice(4, 6)))
 	override def versionMinor = VersionNumber(extractShort(bytes.slice(6, 8)))
 	override def timeZone = TimeZoneOffset(extractInt(bytes.slice(8, 12)))
-	override def sigfigs = SignificantFigures(extractInt(bytes.slice(12, 16)))
+	override def sigFigs = SignificantFigures(extractInt(bytes.slice(12, 16)))
 	override def snapshotLength = extractInt(bytes.slice(16, 20))
 	override def linkType = LinkType(extractInt(bytes.slice(20, 24)))
 }
