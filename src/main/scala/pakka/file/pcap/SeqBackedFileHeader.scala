@@ -6,7 +6,7 @@ import java.nio.ByteOrder
 import scala.math.Ordering.ByteOrdering
 import pakka.util._
 
-final class SeqBackedFileHeader(val bytes : immutable.Seq[Byte]) extends FileHeader 
+final class SeqBackedFileHeader(val bytes : immutable.IndexedSeq[Byte]) extends FileHeader 
 {
 	require (bytes.length == FileHeader.Size)
 	
@@ -27,7 +27,7 @@ final class SeqBackedFileHeader(val bytes : immutable.Seq[Byte]) extends FileHea
 		case ByteOrder.LITTLE_ENDIAN => rawMagicNumber.swapped
 	}
 	
-	private def extractInt(toExtract : Seq[Byte]) = (byteOrder : @switch) match
+	private def extractInt(toExtract : IndexedSeq[Byte]) = (byteOrder : @switch) match
 	{
 		case ByteOrder.BIG_ENDIAN => 
 			bytesToInt(toExtract(0), toExtract(1), toExtract(2), toExtract(3))
@@ -35,7 +35,7 @@ final class SeqBackedFileHeader(val bytes : immutable.Seq[Byte]) extends FileHea
 			bytesToInt(toExtract(3), toExtract(2), toExtract(1), toExtract(0))
 	}
 	
-	private def extractShort(toExtract : Seq[Byte]) = (byteOrder : @switch) match
+	private def extractShort(toExtract : IndexedSeq[Byte]) = (byteOrder : @switch) match
 	{
 		case ByteOrder.BIG_ENDIAN => 
 			bytesToShort(toExtract(0), toExtract(1))
