@@ -14,20 +14,20 @@ object FileHeaderIteratee
 	{
 		case Input.EOF => Error("insufficient input", Input.El(buffer))
 		case Input.Empty => Cont(step(buffer))
-		case Input.El(moreBytes) => 
-			val combinedInput = buffer ++ moreBytes
-			if (combinedInput.size >= pcap.FileHeader.Size)
+		case Input.El(moreBytes) => (buffer ++ moreBytes) match
+		{
+			case combinedInput if combinedInput.size < pcap.FileHeader.Size =>
+				Cont(step(combinedInput))
+			case combinedInput =>
 				try {
 					val (headerBytes, remainder) = combinedInput splitAt pcap.FileHeader.Size
-					val fileHeader = FileHeader(headerBytes)
-					Done(fileHeader, Input.El(remainder))
+					Done(FileHeader(headerBytes), Input.El(remainder))
 				}
 				catch {
 					case e : InvalidFileHeaderException => 
 						Error(e.getMessage, Input.El(combinedInput))
 				}
-			else
-				Cont(step(combinedInput))
+		}
 	}
 	
 	
