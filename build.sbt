@@ -15,4 +15,8 @@ libraryDependencies += "org.threeten" % "threetenbp" % "0.8.1"
 
 libraryDependencies += "com.typesafe.play" %% "play-iteratees" % "2.2.0"
 
+resolvers += "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
+
+libraryDependencies += "org.scalaz.stream" %% "scalaz-stream" % "0.2-SNAPSHOT"
+
 

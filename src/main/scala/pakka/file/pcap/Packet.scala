@@ -1,3 +1,5 @@
 package pakka.file.pcap
 
-final case class Packet(fileHeader : FileHeader, packetHeader : PacketHeader, payload : Seq[Byte]) 
+import scala.collection.immutable
+
+final case class Packet(fileHeader : FileHeader, packetHeader : PacketHeader, payload : immutable.IndexedSeq[Byte]) 
