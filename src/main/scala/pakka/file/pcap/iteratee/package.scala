@@ -87,4 +87,29 @@ package object iteratee
 			packetHeader <- packetHeaderParser(fileHeader)
 			payload <- packetPayloadParser(packetHeader)
 		} yield pcap.Packet(fileHeader, packetHeader, payload)
+		
+		
+	def packetsParser[O]
+		(fileHeader : pcap.FileHeader)
+		(initialValue : O)
+		(handlePacket : (pcap.Packet, O) => O)
+		(implicit executionContext : ExecutionContext) =
+	{
+		def step(buffer : O)(input : Input[ByteString]) : Iteratee[ByteString, O] = input match
+		{
+			case Input.EOF => Done(buffer, input)
+			case Input.Empty => Cont(step(buffer))
+			case Input.El(e) => packetParser(fileHeader) pureFlatFold {
+				case Step.Done(a, e) => Done(handlePacket(a, buffer), input)
+				case Step.Cont(k) => 
+					for {
+						packet <- k(input)
+						newBuffer = handlePacket(packet, buffer)
+						nextStep <- Cont(step(newBuffer))
+					} yield nextStep
+				case Step.Error(msg, e) => Error(msg, e)
+			}
+		}
+		Cont(step(initialValue))
+	}
 }
