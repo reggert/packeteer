@@ -153,7 +153,7 @@ object FileHeader
 				throw new InvalidFileHeaderException(s"Unreasonable snapshot length: ${snapshotLength & 0xffffffffL}")
 			case snapshotLength =>
 				FileHeader(
-						ByteOrder.BIG_ENDIAN,
+						byteOrder,
 						magicNumber,
 						VersionNumber(extractShort(4)),
 						VersionNumber(extractShort(6)),
