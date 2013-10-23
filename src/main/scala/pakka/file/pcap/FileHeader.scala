@@ -106,6 +106,8 @@ final case class MagicNumber(toInt : Int) extends AnyVal with Unsigned.IntWrappe
 			((toInt << 8) & 0x00ff0000) |
 			((toInt << 24) & 0xff000000)
 		)
+		
+	override def toString = f"${toLong}%8x"
 }
 
 final case class VersionNumber(toShort : Short) extends AnyVal with Unsigned.ShortWrapper
