@@ -11,8 +11,12 @@ package object iteratee
 	{	
 		def step(buffer : ByteString)(input : Input[ByteString]) : Iteratee[ByteString, pcap.FileHeader] = input match
 		{
-			case Input.EOF => Error("insufficient input", Input.El(buffer))
-			case Input.Empty => Cont(step(buffer))
+			case Input.EOF =>
+				assert (buffer.size < pcap.FileHeader.Size)
+				Error("insufficient input", Input.El(buffer))
+			case Input.Empty => 
+				assert (buffer.size < pcap.FileHeader.Size)
+				Cont(step(buffer))
 			case Input.El(moreBytes) => (buffer ++ moreBytes) match
 			{
 				case combinedInput if combinedInput.size < pcap.FileHeader.Size =>
@@ -40,8 +44,12 @@ package object iteratee
 		def step(buffer : ByteString)(input : Input[ByteString])
 			: Iteratee[ByteString, pcap.PacketHeader] = input match
 		{
-			case Input.EOF => Error("insufficient input", Input.El(buffer))
-			case Input.Empty => Cont(step(buffer))
+			case Input.EOF => 
+				assert (buffer.size < pcap.PacketHeader.Size)
+				Error("insufficient input", Input.El(buffer))
+			case Input.Empty => 
+				assert (buffer.size < pcap.PacketHeader.Size)
+				Cont(step(buffer))
 			case Input.El(moreBytes) => (buffer ++ moreBytes) match
 			{
 				case combinedInput if combinedInput.size < pcap.PacketHeader.Size =>
@@ -66,8 +74,12 @@ package object iteratee
 		def step(buffer : ByteString)(input : Input[ByteString])
 			: Iteratee[ByteString, ByteString] = input match
 		{
-			case Input.EOF => Error("insufficient input", Input.El(buffer))
-			case Input.Empty => Cont(step(buffer))
+			case Input.EOF =>
+				assert (buffer.size < packetHeader.capturedLength)
+				Error("insufficient input", Input.El(buffer))
+			case Input.Empty => 
+				assert (buffer.size < packetHeader.capturedLength)
+				Cont(step(buffer))
 			case Input.El(moreBytes) => (buffer ++ moreBytes) match
 			{
 				case combinedInput if combinedInput.size < packetHeader.capturedLength =>
@@ -93,23 +105,15 @@ package object iteratee
 		(fileHeader : pcap.FileHeader)
 		(initialValue : O)
 		(handlePacket : (pcap.Packet, O) => O)
-		(implicit executionContext : ExecutionContext) =
-	{
-		def step(buffer : O)(input : Input[ByteString]) : Iteratee[ByteString, O] = input match
-		{
-			case Input.EOF => Done(buffer, input)
-			case Input.Empty => Cont(step(buffer))
-			case Input.El(e) => packetParser(fileHeader) pureFlatFold {
-				case Step.Done(a, e) => Done(handlePacket(a, buffer), input)
-				case Step.Cont(k) => 
-					for {
-						packet <- k(input)
-						newBuffer = handlePacket(packet, buffer)
-						nextStep <- Cont(step(newBuffer))
-					} yield nextStep
-				case Step.Error(msg, e) => Error(msg, e)
-			}
+		(implicit executionContext : ExecutionContext) 
+		: Iteratee[ByteString, O] =
+	Cont {
+			case Input.EOF => Done(initialValue, Input.EOF)
+			case Input.El(e) if e.length > 0 => 
+				val parseNextPacket = for {
+					packet <- Iteratee.flatten(packetParser(fileHeader) feed Input.El(e))
+				} yield handlePacket(packet, initialValue)
+				parseNextPacket flatMap {newValue => packetsParser(fileHeader)(newValue)(handlePacket)}
+			case _ => packetsParser(fileHeader)(initialValue)(handlePacket)
 		}
-		Cont(step(initialValue))
-	}
 }
