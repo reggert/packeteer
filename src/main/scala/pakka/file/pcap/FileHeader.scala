@@ -10,8 +10,7 @@ import scala.annotation._
 case class FileHeader(
 		byteOrder : ByteOrder, 
 		magicNumber : MagicNumber,
-		versionMajor : VersionNumber,
-		versionMinor : VersionNumber,
+		version : Version,
 		timeZone : TimeZoneOffset,
 		sigFigs : SignificantFigures,
 		snapshotLength : Int,
@@ -50,10 +49,10 @@ case class FileHeader(
 			case 1 => secondByte(magicNumber.toInt)
 			case 2 => thirdByte(magicNumber.toInt)
 			case 3 => fourthByte(magicNumber.toInt)
-			case 4 => firstByte(versionMajor.toShort)
-			case 5 => secondByte(versionMajor.toShort)
-			case 6 => firstByte(versionMinor.toShort)
-			case 7 => secondByte(versionMinor.toShort)
+			case 4 => firstByte(version.major.toShort)
+			case 5 => secondByte(version.major.toShort)
+			case 6 => firstByte(version.minor.toShort)
+			case 7 => secondByte(version.minor.toShort)
 			case 8 => firstByte(timeZone.toInt)
 			case 9 => secondByte(timeZone.toInt)
 			case 10 => thirdByte(timeZone.toInt)
@@ -110,6 +109,8 @@ final case class MagicNumber(toInt : Int) extends AnyVal with Unsigned.IntWrappe
 	override def toString = f"${toLong}%8x"
 }
 
+final case class Version(major : VersionNumber, minor : VersionNumber)
+
 final case class VersionNumber(toShort : Short) extends AnyVal with Unsigned.ShortWrapper
 
 final case class TimeZoneOffset(toInt : Int) extends AnyVal
@@ -155,8 +156,10 @@ object FileHeader
 				FileHeader(
 						byteOrder,
 						magicNumber,
-						VersionNumber(extractShort(4)),
-						VersionNumber(extractShort(6)),
+						Version(
+								VersionNumber(extractShort(4)),
+								VersionNumber(extractShort(6))
+							),
 						TimeZoneOffset(extractInt(8)),
 						SignificantFigures(extractInt(12)),
 						snapshotLength,

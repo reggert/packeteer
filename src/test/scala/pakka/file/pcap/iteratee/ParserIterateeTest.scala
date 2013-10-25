@@ -31,8 +31,10 @@ class ParserIterateeTest extends FeatureSpec with Matchers with GivenWhenThen
 		val expectedFileHeader = pcap.FileHeader(
 				byteOrder = ByteOrder.LITTLE_ENDIAN,
 				magicNumber = pcap.FileHeader.MagicNumbers.Standard,
-				versionMajor = pcap.VersionNumber(2),
-				versionMinor = pcap.VersionNumber(4),
+				version = pcap.Version(
+						pcap.VersionNumber(2),
+						pcap.VersionNumber(4)
+					),
 				timeZone = pcap.TimeZoneOffset(0),
 				sigFigs = pcap.SignificantFigures(0),
 				snapshotLength = 65535,
