@@ -1,9 +1,8 @@
 package pakka.protocol.network.ip
 
-import pakka.protocol.network.NetworkProtocolHeader
 import pakka.util.Unsigned
 
-trait InternetProtocolHeader[Address <: InternetAddress] extends NetworkProtocolHeader 
+trait InternetProtocolHeader[Address <: InternetAddress]  
 {
 	def version : ProtocolVersion
 	def source : Address
