@@ -36,31 +36,31 @@ package object iteratee
 	}
 	
 	
-	def packetHeaderParser(fileHeader : pcap.FileHeader) : Iteratee[ByteString, pcap.PacketHeader] =
+	def frameHeaderParser(fileHeader : pcap.FileHeader) : Iteratee[ByteString, pcap.FrameHeader] =
 	{
 		implicit val byteOrder = fileHeader.byteOrder
 		implicit val timestampPrecision = fileHeader.timestampPrecision
 		
 		def step(buffer : ByteString)(input : Input[ByteString])
-			: Iteratee[ByteString, pcap.PacketHeader] = input match
+			: Iteratee[ByteString, pcap.FrameHeader] = input match
 		{
 			case Input.EOF => 
-				assert (buffer.size < pcap.PacketHeader.Size)
+				assert (buffer.size < pcap.FrameHeader.Size)
 				Error("insufficient input", Input.El(buffer))
 			case Input.Empty => 
-				assert (buffer.size < pcap.PacketHeader.Size)
+				assert (buffer.size < pcap.FrameHeader.Size)
 				Cont(step(buffer))
 			case Input.El(moreBytes) => (buffer ++ moreBytes) match
 			{
-				case combinedInput if combinedInput.size < pcap.PacketHeader.Size =>
+				case combinedInput if combinedInput.size < pcap.FrameHeader.Size =>
 					Cont(step(combinedInput))
 				case combinedInput =>
 				try {
-					val (headerBytes, remainder) = combinedInput splitAt pcap.PacketHeader.Size
-					Done(pcap.PacketHeader(headerBytes, fileHeader.snapshotLength), Input.El(remainder))
+					val (headerBytes, remainder) = combinedInput splitAt pcap.FrameHeader.Size
+					Done(pcap.FrameHeader(headerBytes, fileHeader.snapshotLength), Input.El(remainder))
 				}
 				catch {
-					case e : InvalidPacketHeaderException => Error(e.getMessage, Input.El(combinedInput))
+					case e : InvalidFrameHeaderException => Error(e.getMessage, Input.El(combinedInput))
 				}
 			}
 		}
@@ -69,23 +69,23 @@ package object iteratee
 	}
 	
 	
-	def packetPayloadParser(packetHeader : pcap.PacketHeader) : Iteratee[ByteString, ByteString] =
+	def framePayloadParser(frameHeader : pcap.FrameHeader) : Iteratee[ByteString, ByteString] =
 	{
 		def step(buffer : ByteString)(input : Input[ByteString])
 			: Iteratee[ByteString, ByteString] = input match
 		{
 			case Input.EOF =>
-				assert (buffer.size < packetHeader.capturedLength)
+				assert (buffer.size < frameHeader.capturedLength)
 				Error("insufficient input", Input.El(buffer))
 			case Input.Empty => 
-				assert (buffer.size < packetHeader.capturedLength)
+				assert (buffer.size < frameHeader.capturedLength)
 				Cont(step(buffer))
 			case Input.El(moreBytes) => (buffer ++ moreBytes) match
 			{
-				case combinedInput if combinedInput.size < packetHeader.capturedLength =>
+				case combinedInput if combinedInput.size < frameHeader.capturedLength =>
 					Cont(step(combinedInput))
 				case combinedInput =>
-					val (payload, remainder) = combinedInput splitAt packetHeader.capturedLength
+					val (payload, remainder) = combinedInput splitAt frameHeader.capturedLength
 					Done(payload, Input.El(remainder))
 			}
 		}
@@ -94,26 +94,26 @@ package object iteratee
 	}
 	
 	
-	def packetParser(fileHeader : pcap.FileHeader)(implicit executionContext : ExecutionContext) : Iteratee[ByteString, pcap.Packet] =
+	def frameParser(fileHeader : pcap.FileHeader)(implicit executionContext : ExecutionContext) : Iteratee[ByteString, pcap.Frame] =
 		for {
-			packetHeader <- packetHeaderParser(fileHeader)
-			payload <- packetPayloadParser(packetHeader)
-		} yield pcap.Packet(fileHeader, packetHeader, payload)
+			frameHeader <- frameHeaderParser(fileHeader)
+			payload <- framePayloadParser(frameHeader)
+		} yield pcap.Frame(fileHeader, frameHeader, payload)
 		
 		
-	def packetsParser[O]
+	def framesParser[O]
 		(fileHeader : pcap.FileHeader)
 		(initialValue : O)
-		(handlePacket : (pcap.Packet, O) => O)
+		(handleFrame : (pcap.Frame, O) => O)
 		(implicit executionContext : ExecutionContext) 
 		: Iteratee[ByteString, O] =
 	Cont {
 			case Input.EOF => Done(initialValue, Input.EOF)
 			case Input.El(e) if e.length > 0 => 
-				val parseNextPacket = for {
-					packet <- Iteratee.flatten(packetParser(fileHeader) feed Input.El(e))
-				} yield handlePacket(packet, initialValue)
-				parseNextPacket flatMap {newValue => packetsParser(fileHeader)(newValue)(handlePacket)}
-			case _ => packetsParser(fileHeader)(initialValue)(handlePacket)
+				val parseNextFrame = for {
+					packet <- Iteratee.flatten(frameParser(fileHeader) feed Input.El(e))
+				} yield handleFrame(packet, initialValue)
+				parseNextFrame flatMap {(newValue => framesParser(fileHeader)(newValue)(handleFrame))}
+			case _ => framesParser(fileHeader)(initialValue)(handleFrame)
 		}
 }

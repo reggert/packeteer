@@ -3,14 +3,14 @@ package pakka.file.pcap
 import org.threeten.bp.Instant
 import java.nio.ByteOrder
 import scala.collection.immutable
-import PacketHeader._
+import FrameHeader._
 import scala.collection.IndexedSeqOptimized
 import scala.annotation._
 
 /**
  * PCAP packet header format, as described by http://wiki.wireshark.org/Development/LibpcapFileFormat
  */
-case class PacketHeader(timestamp : Instant, capturedLength : Int, originalLength : Int) 
+case class FrameHeader(timestamp : Instant, capturedLength : Int, originalLength : Int) 
 {
 	sealed private abstract class BaseIndexedSeq(implicit timestampPrecision : FileHeader.TimestampPrecision) 
 		extends immutable.IndexedSeq[Byte] 
@@ -81,14 +81,14 @@ case class PacketHeader(timestamp : Instant, capturedLength : Int, originalLengt
 }
 
 
-object PacketHeader
+object FrameHeader
 {
 	val Size = 16
 	
 	
 	def apply(bytes : IndexedSeq[Byte], snapshotLength : Int) 
 		(implicit byteOrder : ByteOrder, timestampPrecision : FileHeader.TimestampPrecision)
-		: PacketHeader =
+		: FrameHeader =
 	{
 		require(bytes.length == Size)
 		require(snapshotLength > 0)
@@ -108,15 +108,15 @@ object PacketHeader
 		}
 		val capturedLength = extractInt(8) match {
 			case x if x < 0 || x > snapshotLength => 
-				throw new InvalidPacketHeaderException(s"captured length $x exceeds snapshot length $snapshotLength")
+				throw new InvalidFrameHeaderException(s"captured length $x exceeds snapshot length $snapshotLength")
 			case x => x
 		}
 		val originalLength = extractInt(12) match {
 			case x if x < 0 =>
-				throw new InvalidPacketHeaderException(s"unreasonable original packet length ${x & 0xffffffffL}")
+				throw new InvalidFrameHeaderException(s"unreasonable original frame length ${x & 0xffffffffL}")
 			case x => x
 		}
-		PacketHeader(timestamp, capturedLength, originalLength)
+		FrameHeader(timestamp, capturedLength, originalLength)
 	}
 	
 	
