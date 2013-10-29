@@ -1,20 +1,39 @@
 package pakka.protocol.network.ip.version4
 
+import scala.language.postfixOps
 import pakka.protocol.network.ip
 import pakka.util.Unsigned
+import scala.annotation.tailrec
+import scala.collection.immutable
 
 
-trait InternetProtocolHeader extends ip.InternetProtocolHeader[InternetAddress] 
+final case class InternetProtocolHeader(
+		trafficClass : ip.TrafficClass,
+		totalLength : Int,
+		identification : Identification,
+		flags : Flags,
+		fragmentOffset : FragmentOffset, 
+		timeToLive : ip.HopCount,
+		nextProtocol : ip.HeaderType,
+		headerChecksum : HeaderChecksum,
+		source : InternetAddress,
+		destination : InternetAddress,
+		options : List[HeaderOption]
+	) extends ip.InternetProtocolHeader[InternetAddress]
 {
-	override final def version = ip.ProtocolVersion(4)
+	def hopLimit = timeToLive 
+	def version = ip.ProtocolVersion(4)
 	
-	def headerLength : InternetHeaderLength
-	def totalLength : Int
-	final def timeToLive = hopLimit
-	def identification : Identification
-	def flags : Flags
-	def fragmentOffset : Short
-	def options : Seq[HeaderOption]
+	@tailrec
+	private[this] def pad(n : Int) : Int = if (n % 4 == 0) n else pad(n+1) 
+	
+	private[this] def optionsLength = 
+		options.view map {_.optionLength ensuring {_ >= 1}} sum
+	
+	val headerLength = InternetHeaderLength((5 + pad(optionsLength) / 4).toByte)
+	
+	require (totalLength >= headerLength.bytes)
+	require (totalLength < (1 << 16))
 }
 
 
@@ -31,10 +50,16 @@ final case class Identification(toShort : Short) extends AnyVal with Unsigned.Sh
 final case class Flags(reserved : Boolean, dontFragment : Boolean, moreFragments : Boolean) 
 
 
+final case class FragmentOffset(toShort : Short) extends AnyVal with Unsigned.ShortWrapper
+
+final case class HeaderChecksum(toShort : Short) extends AnyVal with Unsigned.ShortWrapper
+
+
 trait HeaderOption
 {
 	def optionType : OptionType
 	def optionLength : Int
+	def optionData : immutable.IndexedSeq[Byte]
 }
 
 
@@ -44,4 +69,6 @@ final case class OptionType(toByte : Byte) extends AnyVal
 	def optionClass : Int = (toByte & 0x60) >> 5
 	def optionNumber : Int = (toByte & 0x1f)
 }
+
+
 
