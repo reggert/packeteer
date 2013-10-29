@@ -3,6 +3,7 @@ package pakka.protocol.network.ip.version4
 import pakka.protocol.network.ip
 import java.net.Inet4Address
 import scala.annotation.switch
+import pakka.protocol.network.ip.AddressFormatException
 
 final case class InternetAddress(val octet1 : Byte, val octet2 : Byte, val octet3 : Byte, val octet4 : Byte) 
 	extends ip.InternetAddress with Ordered[InternetAddress]
@@ -41,30 +42,26 @@ final case class InternetAddress(val octet1 : Byte, val octet2 : Byte, val octet
 
 object InternetAddress
 {
-	object DottedDecimal 
-	{
-		val Pattern = """(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])""".r
-		
-		def apply(address : InternetAddress) = address.toString
-		
-		def unapply(s : String) : Option[InternetAddress] = s match
-		{
-			case Pattern(octet1, octet2, octet3, octet4) => 
-				// toInt needs to be called before toByte to avoid range checks
-				Some(InternetAddress(octet1.toInt.toByte, octet2.toInt.toByte, octet3.toInt.toByte, octet4.toInt.toByte))
-			case _ =>
-				None
+	val Size = 4
+	
+	val DottedDecimalOctets = """(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])""".r
+	
+	def apply(dottedDecimal : String) : InternetAddress = 
+		parse(dottedDecimal) getOrElse {
+			throw new AddressFormatException(s"Invalid IPv4 address: $dottedDecimal", dottedDecimal)
 		}
+		
+	def parse(dottedDecimal : String) : Option[InternetAddress] = dottedDecimal match
+	{
+		case DottedDecimalOctets(octet1, octet2, octet3, octet4) =>
+			// toInt needs to be called before toByte to avoid range checks
+			Some(InternetAddress(octet1.toInt.toByte, octet2.toInt.toByte, octet3.toInt.toByte, octet4.toInt.toByte))
+		case _ => None
 	}
-	
-	object OctetSequence
+
+	def apply(octets : Seq[Byte]) : InternetAddress = octets match
 	{
-		def apply(address : InternetAddress) : Seq[Byte] = address
-	
-		def unapply(octets : Seq[Byte]) : Option[InternetAddress] = octets match
-		{
-			case Seq(octet1, octet2, octet3, octet4) => Some(InternetAddress(octet1, octet2, octet3, octet4))
-			case _ => None
-		}
+		case Seq(octet1, octet2, octet3, octet4) => InternetAddress(octet1, octet2, octet3, octet4)
+		case _ => throw new IllegalArgumentException("octets.size != 4")
 	}
 }

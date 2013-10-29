@@ -22,17 +22,21 @@ trait InternetAddress extends immutable.IndexedSeq[Byte] with Product
 
 object InternetAddress {
 	
-	object OctetSequence
+	def apply(octets : Seq[Byte]) : InternetAddress = octets.size match
 	{
-		def apply(address : InternetAddress) : Seq[Byte] = address
-		
-		def unapply(octets : Seq[Byte]) : Option[InternetAddress] = octets match
-		{
-			case version4.InternetAddress.OctetSequence(address) => Some(address)
-			case version6.InternetAddress.OctetSequence(address) => Some(address)
-			case _ => None
-		}
+		case version4.InternetAddress.Size => version4.InternetAddress(octets)
+		case version6.InternetAddress.Size => version6.InternetAddress(octets)
+		case _ => throw new IllegalArgumentException("octets.size = ${octets.size}")
 	}
+		
+	
+	def apply(s : String) : InternetAddress = parse(s) getOrElse {
+		throw new AddressFormatException(s)
+	}
+	
+	
+	def parse(s : String) : Option[InternetAddress] = 
+		version4.InternetAddress.parse(s) orElse version6.InternetAddress.parse(s)
 }
 
 

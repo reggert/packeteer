@@ -3,6 +3,7 @@ package pakka.protocol.network.ip.version6
 import pakka.protocol.network.ip
 import java.net.Inet6Address
 import scala.annotation.switch
+import pakka.protocol.network.ip.AddressFormatException
 
 final case class InternetAddress(
 		val octet1 : Byte,
@@ -55,27 +56,25 @@ final case class InternetAddress(
 
 object InternetAddress 
 {
-	object ColonGroups
-	{
-		def apply(address : InternetAddress) = address.toString
+	val Size = 16
+	
+	def apply(colonGroups : String) = parse(colonGroups) getOrElse {
+		throw new AddressFormatException(s"Invalid IPv6 address: colonGroups", colonGroups)
 	}
 	
-	object OctetSequence
+	def parse(colonGroups : String) : Option[InternetAddress] = ??? // TODO: implement this!
+	
+	def apply(octets : Seq[Byte]) : InternetAddress = octets match
 	{
-		def apply(address : InternetAddress) : Seq[Byte] = address
-		
-		def unapply(octets : Seq[Byte]) : Option[InternetAddress] = octets match
-		{
-			case Seq(
+		case Seq(
+				octet1, octet2, octet3, octet4, octet5, octet6, octet7, octet8,
+				octet9, octet10, octet11, octet12, octet13, octet14, octet15, octet16
+			) => 
+			InternetAddress(
 					octet1, octet2, octet3, octet4, octet5, octet6, octet7, octet8,
 					octet9, octet10, octet11, octet12, octet13, octet14, octet15, octet16
-				) => 
-				Some(InternetAddress(
-						octet1, octet2, octet3, octet4, octet5, octet6, octet7, octet8,
-						octet9, octet10, octet11, octet12, octet13, octet14, octet15, octet16
-					))
-			case _ => None
-		}
+				)
+		case _ => throw new IllegalArgumentException("octets.size != 16")
 	}
 }
 
