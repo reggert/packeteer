@@ -7,11 +7,12 @@ import scala.language.postfixOps
 import org.scalatest.{FeatureSpec, FlatSpec, GivenWhenThen, Matchers, WordSpec}
 import akka.util.ByteString
 import pakka.file.pcap
-import play.api.libs.iteratee.Enumerator
+import play.api.libs.iteratee.{Enumerator, Iteratee}
 import java.nio.ByteOrder
 import org.threeten.bp.Instant
 
 class ParserIterateeTest extends FeatureSpec with Matchers with GivenWhenThen
+	with ParserIteratees[ByteString] with ByteSeqOps.Implicits
 {
 	val executor = new ForkJoinPool
 	implicit val executionContext = ExecutionContext.fromExecutorService(executor)
@@ -110,7 +111,7 @@ class ParserIterateeTest extends FeatureSpec with Matchers with GivenWhenThen
 			
 			When("the remaining stream is pushed into the frameParser by an Enumerator")
 			val resultFuture = enumerator.run(
-					framesParser(expectedFileHeader)(List.empty[pcap.Frame]) {_ :: _}
+					framesParser(expectedFileHeader)(Iteratee.getChunks)
 				)
 			
 			Then("it should parse all the frames")
@@ -123,7 +124,7 @@ class ParserIterateeTest extends FeatureSpec with Matchers with GivenWhenThen
 			And("a parser iteratee formed by composing the fileHeaderParser with the framesParser")
 			val parser = for {
 				fileHeader <- fileHeaderParser
-				count <- framesParser(fileHeader)(0) {(_, oldCount) => oldCount + 1}
+				count <- framesParser(fileHeader)(Iteratee.fold(0)((count, _) => count + 1))
 			} yield count
 			
 			When("the file is pushed into the parser by an Enumerator")
