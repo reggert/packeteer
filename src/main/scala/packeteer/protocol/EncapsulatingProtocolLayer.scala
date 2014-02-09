@@ -1,0 +1,5 @@
+package packeteer.protocol
+
+import akka.util.ByteString
+
+trait EncapsulatingProtocolLayer[+HeaderType, +TrailerType] extends ProtocolLayer[HeaderType, ByteString, TrailerType] 
